@@ -8,8 +8,6 @@ use crate::handlers::{handle_event, health};
 
 mod errors;
 mod handlers;
-
-mod models;
 mod validator;
 
 #[actix_web::main]

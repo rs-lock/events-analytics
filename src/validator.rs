@@ -1,4 +1,5 @@
-use crate::{errors::EventError, models::EventType};
+use crate::errors::EventError;
+use event_analytics::models::EventType;
 
 pub fn validate_event_type(event_type: &str) -> Result<EventType, EventError> {
     match event_type.to_lowercase().as_str() {

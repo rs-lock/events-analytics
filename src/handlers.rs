@@ -1,10 +1,11 @@
 use std::time::Duration;
 
-use crate::{errors::EventError, models::Event, validator::validate_event_type};
+use crate::{errors::EventError, validator::validate_event_type};
 use actix_web::{
     HttpResponse,
     web::{Data, Json, Path},
 };
+use event_analytics::models::Event;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 
 pub async fn handle_event(
@@ -26,7 +27,7 @@ pub async fn handle_event(
         .key(&string_uid);
 
     producer
-        .send(record, Duration::from_millis(450))
+        .send(record, Duration::from_millis(10))
         .await
         .map_err(|_| EventError::KafkaError)?;
     let ok = HttpResponse::Ok().json(serde_json::json!({ "status": "ok" }));
