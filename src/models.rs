@@ -8,7 +8,15 @@ pub struct Event {
     pub product_id: Uuid,
     pub session_id: Uuid,
     pub timestamp: chrono::DateTime<Utc>,
-    pub metadata: serde_json::Value,
+    pub metadata: Metadata,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Metadata {
+    pub source: Option<String>,
+    pub position: Option<u32>,
+    pub category: Option<String>,
+    pub amount: Option<u64>,
 }
 
 pub enum EventType {
