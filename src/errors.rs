@@ -53,3 +53,25 @@ impl Display for EventError {
 }
 
 impl std::error::Error for EventError {}
+
+#[derive(Debug)]
+pub enum WorkerError {
+    TopicNotFound,
+    ClickHouse(clickhouse::error::Error),
+}
+
+impl Display for WorkerError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::TopicNotFound => write!(f, "topic not found"),
+            Self::ClickHouse(e) => write!(f, "clickhose error: {e}"),
+        }
+    }
+}
+impl std::error::Error for WorkerError {}
+
+impl From<clickhouse::error::Error> for WorkerError {
+    fn from(e: clickhouse::error::Error) -> Self {
+        WorkerError::ClickHouse(e)
+    }
+}
