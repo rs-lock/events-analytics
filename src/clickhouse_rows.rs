@@ -1,6 +1,6 @@
 use chrono::Utc;
 use clickhouse::Row;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::models::Event;
@@ -54,6 +54,13 @@ pub struct PurchaseRow {
     pub position: u32,
     pub category: String,
     pub amount: u64,
+}
+
+#[derive(Row, Deserialize, Serialize)]
+pub struct TopProductRow {
+    #[serde(with = "clickhouse::serde::uuid")]
+    pub product_id: Uuid,
+    pub count: u64,
 }
 
 impl From<Event> for PurchaseRow {
