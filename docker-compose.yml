@@ -8,6 +8,7 @@ services:
 
     volumes:
       - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse-config/users.d:/etc/clickhouse-server/users.d
 
     environment:
       CLICKHOUSE_USER: default
