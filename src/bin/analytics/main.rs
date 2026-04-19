@@ -32,6 +32,10 @@ async fn main() -> Result<()> {
                     .route(
                         "analytics/user-activity/{user_id}",
                         web::get().to(handlers::handle_user_activity),
+                    )
+                    .route(
+                        "analytics/conversion-rate",
+                        web::get().to(handlers::handle_conversion_rate),
                     ),
             )
             .app_data(web::Data::new(client.clone()))

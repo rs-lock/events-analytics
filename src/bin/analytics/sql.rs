@@ -1,4 +1,3 @@
-use chrono::Utc;
 use clickhouse::Client;
 use event_analytics::clickhouse_rows::{CountRow, TopProductRow};
 use uuid::Uuid;
@@ -78,4 +77,28 @@ pub async fn select_top_products_by_period(
         .await?;
 
     Ok(rows)
+}
+
+pub async fn select_global_event_count(
+    client: &Client,
+    table: &str,
+    from: impl Into<ClickHouseTimestamp>,
+    to: impl Into<ClickHouseTimestamp>,
+) -> std::result::Result<u64, clickhouse::error::Error> {
+    let sql = format!(
+        "SELECT count() AS count 
+        FROM {}
+        WHERE timestamp BETWEEN ? AND ?
+    ",
+        table
+    );
+
+    let row = client
+        .query(&sql)
+        .bind(from.into())
+        .bind(to.into())
+        .fetch_one::<CountRow>()
+        .await?;
+
+    Ok(row.count)
 }

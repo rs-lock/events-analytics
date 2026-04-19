@@ -45,3 +45,14 @@ impl From<&TopProductRow> for ProductItemResponse {
         }
     }
 }
+
+#[derive(Debug, Serialize)]
+pub struct ConversionRateResponse {
+    pub from: String,
+    pub to: String,
+    pub views: u64,
+    pub clicks: u64,
+    pub purchases: u64,
+    pub view_to_purchase: f64,
+    pub click_to_purchase: f64,
+}

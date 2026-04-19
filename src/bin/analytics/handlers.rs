@@ -10,9 +10,15 @@ use uuid::Uuid;
 
 use crate::{
     errors::AnalyticsError,
-    queries::{TopProductsQuery, UserActivityQuery},
-    response::{EventCounts, ProductActivity, ProductsResponse, UserActivityResponse},
-    sql::{select_top_products, select_top_products_by_period, select_user_event_count},
+    queries::{ConversionRateQuery, TopProductsQuery, UserActivityQuery},
+    response::{
+        ConversionRateResponse, EventCounts, ProductActivity, ProductsResponse,
+        UserActivityResponse,
+    },
+    sql::{
+        select_global_event_count, select_top_products, select_top_products_by_period,
+        select_user_event_count,
+    },
     validation::{validate_metric, validate_period},
 };
 
@@ -112,4 +118,60 @@ pub async fn handle_user_activity(
             .collect(),
     };
     Ok(HttpResponse::Ok().json(resp))
+}
+
+pub async fn handle_conversion_rate(
+    query: web::Query<ConversionRateQuery>,
+    client: Data<Client>,
+) -> Result<HttpResponse, AnalyticsError> {
+    let q = query.into_inner();
+
+    let Some(from) = q.from else {
+        return Err(AnalyticsError::MissingFrom);
+    };
+
+    let Some(to) = q.to else {
+        return Err(AnalyticsError::MissingTo);
+    };
+
+    let Ok(from) = DateTime::parse_from_rfc3339(&from).map(|d| d.to_utc()) else {
+        return Err(AnalyticsError::InvalidFrom);
+    };
+
+    let Ok(to) = DateTime::parse_from_rfc3339(&to).map(|d| d.to_utc()) else {
+        return Err(AnalyticsError::InvalidTo);
+    };
+
+    let (c, v, p) = tokio::join!(
+        select_global_event_count(client.get_ref(), "clicks", from, to),
+        select_global_event_count(client.get_ref(), "views", from, to),
+        select_global_event_count(client.get_ref(), "purchases", from, to),
+    );
+
+    let clicks = c?;
+    let views = v?;
+    let purchases = p?;
+
+    let click_to_purchase = if clicks == 0 {
+        0.0
+    } else {
+        purchases as f64 / clicks as f64
+    };
+    let view_to_purchase = if views == 0 {
+        0.0
+    } else {
+        purchases as f64 / views as f64
+    };
+
+    let r = ConversionRateResponse {
+        from: from.to_string(),
+        to: to.to_string(),
+        views,
+        clicks,
+        purchases,
+        view_to_purchase,
+        click_to_purchase,
+    };
+
+    Ok(HttpResponse::Ok().json(r))
 }

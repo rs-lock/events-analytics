@@ -12,3 +12,9 @@ pub struct UserActivityQuery {
     pub from: Option<String>,
     pub to: Option<String>,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ConversionRateQuery {
+    pub from: Option<String>,
+    pub to: Option<String>,
+}
