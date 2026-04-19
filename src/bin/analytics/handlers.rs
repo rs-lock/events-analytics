@@ -13,7 +13,7 @@ use crate::{
     queries::{ConversionRateQuery, TopProductsQuery, UserActivityQuery},
     response::{
         ConversionRateResponse, EventCounts, ProductActivity, ProductsResponse,
-        UserActivityResponse,
+        RealtimeStatsResponse, UserActivityResponse,
     },
     sql::{
         select_global_event_count, select_top_products, select_top_products_by_period,
@@ -164,8 +164,8 @@ pub async fn handle_conversion_rate(
     };
 
     let r = ConversionRateResponse {
-        from: from.to_string(),
-        to: to.to_string(),
+        from: from.to_rfc3339(),
+        to: to.to_rfc3339(),
         views,
         clicks,
         purchases,
@@ -174,4 +174,46 @@ pub async fn handle_conversion_rate(
     };
 
     Ok(HttpResponse::Ok().json(r))
+}
+
+pub async fn handle_realtime_stats(client: Data<Client>) -> Result<HttpResponse, AnalyticsError> {
+    let now = chrono::Utc::now();
+    let last_15m = now - chrono::Duration::minutes(15);
+    let last_hour = now - chrono::Duration::hours(1);
+    let last_24h = now - chrono::Duration::hours(24);
+    let (c15, v15, p15, c1h, v1h, p1h, c24h, v24h, p24h) = tokio::join!(
+        select_global_event_count(client.get_ref(), "clicks", last_15m, now),
+        select_global_event_count(client.get_ref(), "views", last_15m, now),
+        select_global_event_count(client.get_ref(), "purchases", last_15m, now),
+        //
+        select_global_event_count(client.get_ref(), "clicks", last_hour, now),
+        select_global_event_count(client.get_ref(), "views", last_hour, now),
+        select_global_event_count(client.get_ref(), "purchases", last_hour, now),
+        //
+        select_global_event_count(client.get_ref(), "clicks", last_24h, now),
+        select_global_event_count(client.get_ref(), "views", last_24h, now),
+        select_global_event_count(client.get_ref(), "purchases", last_24h, now),
+    );
+
+    let (c15, v15, p15, c1h, v1h, p1h, c24h, v24h, p24h) =
+        (c15?, v15?, p15?, c1h?, v1h?, p1h?, c24h?, v24h?, p24h?);
+
+    Ok(HttpResponse::Ok().json(RealtimeStatsResponse {
+        last_15m: EventCounts {
+            clicks: c15,
+            views: v15,
+            purchases: p15,
+        },
+        last_hour: EventCounts {
+            clicks: c1h,
+            views: v1h,
+            purchases: p1h,
+        },
+        last_24h: EventCounts {
+            clicks: c24h,
+            views: v24h,
+            purchases: p24h,
+        },
+        timestamp: now.to_rfc3339(),
+    }))
 }

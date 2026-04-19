@@ -56,3 +56,11 @@ pub struct ConversionRateResponse {
     pub view_to_purchase: f64,
     pub click_to_purchase: f64,
 }
+
+#[derive(Debug, Serialize)]
+pub struct RealtimeStatsResponse {
+    pub last_15m: EventCounts,
+    pub last_hour: EventCounts,
+    pub last_24h: EventCounts,
+    pub timestamp: String,
+}
