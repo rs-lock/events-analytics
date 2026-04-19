@@ -7,6 +7,8 @@ use rdkafka::{
     message::BorrowedMessage,
 };
 
+use event_analytics::env;
+
 use clickhouse::Client;
 
 use event_analytics::{
@@ -15,12 +17,28 @@ use event_analytics::{
     models::Event,
 };
 
-const TOPICS: &[&str] = &[("events.clicks"), ("events.views"), ("events.purchases")];
+const TOPICS: &[&str] = &["events.clicks", "events.views", "events.purchases"];
 
 #[tokio::main]
 async fn main() {
+    dotenvy::dotenv().ok();
+
+    let batch_size: usize = env("BATCH_SIZE")
+        .parse()
+        .expect("BATCH_SIZE must be a number");
+    let flush_secs: u64 = env("FLUSH_INTERVAL_SECONDS")
+        .parse()
+        .expect("FLUSH_INTERVAL_SECONDS must be a number");
+
+    let kafka = env("KAFKA_BROKERS");
+
+    let ch_url = env("CLICKHOUSE_URL");
+    let ch_user = env("CLICKHOUSE_USER");
+    let ch_psw = env("CLICKHOUSE_PASSWORD");
+    let ch_db = env("CLICKHOUSE_DATABASE");
+
     let mut config = ClientConfig::new();
-    config.set("bootstrap.servers", "localhost:9092");
+    config.set("bootstrap.servers", kafka);
     config.set("group.id", "workers");
     config.set("auto.offset.reset", "earliest");
 
@@ -29,23 +47,23 @@ async fn main() {
         .subscribe(TOPICS)
         .expect("Can't subscribe to specified topics");
 
-    let mut interval = tokio::time::interval(Duration::from_secs(5));
+    let mut interval = tokio::time::interval(Duration::from_secs(flush_secs));
 
     let mut batch_map: HashMap<&str, Vec<Event>> = TOPICS
         .iter()
-        .map(|v| (*v, Vec::<Event>::with_capacity(1000)))
+        .map(|v| (*v, Vec::<Event>::with_capacity(batch_size)))
         .collect();
 
     let client = Client::default()
-        .with_url("http://localhost:8123")
-        .with_user("default")
-        .with_password("")
-        .with_database("events");
+        .with_url(ch_url)
+        .with_user(ch_user)
+        .with_password(ch_psw)
+        .with_database(ch_db);
 
     loop {
         tokio::select! {
                 msg = consumer.recv() => {
-                    if let Err(e) = handle_msg(msg, &mut batch_map, &client).await {
+                    if let Err(e) = handle_msg(msg, &mut batch_map, &client, batch_size).await {
                         eprintln!("handle error: {:?}", e);
                     }
                     }
@@ -69,6 +87,7 @@ async fn handle_msg(
     msg: Result<BorrowedMessage<'_>, KafkaError>,
     batch_map: &mut HashMap<&str, Vec<Event>>,
     client: &Client,
+    batch_size: usize,
 ) -> Result<(), WorkerError> {
     let v = match msg {
         Ok(v) => v,
@@ -91,9 +110,8 @@ async fn handle_msg(
 
     eprintln!("queued event in {}, batch size: {}", topic, vec.len() + 1);
     vec.push(event);
-    let topic = v.topic();
 
-    if vec.len() >= 1000 {
+    if vec.len() >= batch_size {
         match topic {
             "events.clicks" => flush_clicks_batch(vec, client).await?,
             "events.views" => flush_views_batch(vec, client).await?,

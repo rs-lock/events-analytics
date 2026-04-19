@@ -2,6 +2,7 @@ use actix_web::{
     App, HttpServer,
     web::{self},
 };
+use event_analytics::env;
 use rdkafka::{ClientConfig, producer::FutureProducer};
 
 use crate::handlers::{handle_event, health};
@@ -12,9 +13,14 @@ mod validator;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    dotenvy::dotenv().ok();
+
+    let api_bind = env("INGESTION_BIND");
+    let kafka_bind = env("KAFKA_BROKERS");
+
+    HttpServer::new(move || {
         let producer: FutureProducer = ClientConfig::new()
-            .set("bootstrap.servers", "localhost:9092")
+            .set("bootstrap.servers", &kafka_bind)
             .set("message.timeout.ms", "1000")
             .create()
             .expect("Producer creation error");
@@ -27,7 +33,7 @@ async fn main() -> std::io::Result<()> {
             .route("/health", web::get().to(health))
             .app_data(data)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(api_bind)?
     .run()
     .await
 }
