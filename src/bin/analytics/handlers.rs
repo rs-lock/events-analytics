@@ -6,44 +6,15 @@ use actix_web::{
 };
 use chrono::DateTime;
 use clickhouse::Client;
-use event_analytics::clickhouse_rows::TopProductRow;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
     errors::AnalyticsError,
+    queries::{TopProductsQuery, UserActivityQuery},
+    response::{EventCounts, ProductActivity, ProductsResponse, UserActivityResponse},
     sql::{select_top_products, select_top_products_by_period, select_user_event_count},
     validation::{validate_metric, validate_period},
 };
-
-#[derive(Debug, Deserialize)]
-pub struct TopProductsQuery {
-    pub period: Option<String>,
-    pub limit: Option<u16>,
-    pub metric: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ProductsResponse {
-    period: String,
-    metric: String,
-    items: Vec<ProductItemResponse>,
-}
-
-#[derive(Debug, Serialize)]
-struct ProductItemResponse {
-    product_id: Uuid,
-    count: u64,
-}
-
-impl From<&TopProductRow> for ProductItemResponse {
-    fn from(value: &TopProductRow) -> Self {
-        Self {
-            product_id: value.product_id,
-            count: value.count,
-        }
-    }
-}
 
 pub async fn handle_top_products(
     query: web::Query<TopProductsQuery>,
@@ -141,34 +112,4 @@ pub async fn handle_user_activity(
             .collect(),
     };
     Ok(HttpResponse::Ok().json(resp))
-}
-
-// GET /api/v1/analytics/user-activity/{user_id}?from=...&to=...
-
-#[derive(Debug, Deserialize)]
-pub struct UserActivityQuery {
-    pub from: Option<String>,
-    pub to: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct UserActivityResponse {
-    user_id: Uuid,
-    from: String,
-    to: String,
-    events: EventCounts,
-    top_products: Vec<ProductActivity>,
-}
-
-#[derive(Debug, Serialize, Default)]
-pub struct EventCounts {
-    clicks: u64,
-    views: u64,
-    purchases: u64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ProductActivity {
-    product_id: Uuid,
-    event_counts: EventCounts,
 }

@@ -8,6 +8,8 @@ use clickhouse::Client;
 mod errors;
 mod handlers;
 mod models;
+mod queries;
+mod response;
 mod sql;
 mod validation;
 
