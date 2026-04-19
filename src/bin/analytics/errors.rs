@@ -8,6 +8,11 @@ pub enum AnalyticsError {
     MissingMetric,
     InvalidMetric,
     InvalidPeriod,
+    InvalidUserID,
+    InvalidFrom,
+    InvalidTo,
+    MissingFrom,
+    MissingTo,
     ClickHouse(clickhouse::error::Error),
 }
 
@@ -19,7 +24,12 @@ impl ResponseError for AnalyticsError {
             Self::MissingPeriod
             | Self::MissingMetric
             | Self::InvalidMetric
-            | Self::InvalidPeriod => StatusCode::BAD_REQUEST,
+            | Self::InvalidPeriod
+            | Self::InvalidUserID
+            | Self::MissingTo
+            | Self::MissingFrom
+            | Self::InvalidFrom
+            | Self::InvalidTo => StatusCode::BAD_REQUEST,
             Self::ClickHouse(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -36,7 +46,12 @@ impl Display for AnalyticsError {
             AnalyticsError::MissingMetric => write!(f, "Missing metric"),
             AnalyticsError::InvalidMetric => write!(f, "Invalid metric"),
             AnalyticsError::InvalidPeriod => write!(f, "Invalid period"),
-            AnalyticsError::ClickHouse(e) => write!(f, "clickhose error: {e}"),
+            AnalyticsError::InvalidUserID => write!(f, "Invalid userid"),
+            AnalyticsError::ClickHouse(e) => write!(f, "clickhouse error: {e}"),
+            AnalyticsError::InvalidFrom => write!(f, "Invalid 'from' date"),
+            AnalyticsError::InvalidTo => write!(f, "Invalid 'to' date"),
+            AnalyticsError::MissingFrom => write!(f, "Missing 'from' date"),
+            AnalyticsError::MissingTo => write!(f, "Missing 'to' date"),
         }
     }
 }

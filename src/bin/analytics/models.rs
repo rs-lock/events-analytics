@@ -42,3 +42,11 @@ impl Metric {
         }
     }
 }
+
+#[derive(serde::Serialize)]
+pub struct ClickHouseTimestamp(String);
+impl From<chrono::DateTime<chrono::Utc>> for ClickHouseTimestamp {
+    fn from(value: chrono::DateTime<chrono::Utc>) -> Self {
+        Self(value.format("%Y-%m-%d %H:%M:%S%.3f").to_string())
+    }
+}

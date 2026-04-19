@@ -63,6 +63,11 @@ pub struct TopProductRow {
     pub count: u64,
 }
 
+#[derive(Row, Deserialize, Serialize)]
+pub struct CountRow {
+    pub count: u64,
+}
+
 impl From<Event> for PurchaseRow {
     fn from(value: Event) -> Self {
         PurchaseRow {

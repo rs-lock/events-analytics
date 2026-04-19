@@ -21,10 +21,17 @@ async fn main() -> Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .service(web::scope("/api/v1").route(
-                "/analytics/top-products",
-                web::get().to(handlers::handle_top_products),
-            ))
+            .service(
+                web::scope("/api/v1")
+                    .route(
+                        "/analytics/top-products",
+                        web::get().to(handlers::handle_top_products),
+                    )
+                    .route(
+                        "analytics/user-activity/{user_id}",
+                        web::get().to(handlers::handle_user_activity),
+                    ),
+            )
             .app_data(web::Data::new(client.clone()))
     })
     .bind(("127.0.0.1", 8081))?
