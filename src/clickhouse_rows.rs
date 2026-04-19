@@ -53,7 +53,7 @@ pub struct PurchaseRow {
     pub source: String,
     pub position: u32,
     pub category: String,
-    pub amount: u64,
+    pub amount: u32,
 }
 
 #[derive(Row, Deserialize, Serialize)]

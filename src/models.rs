@@ -16,7 +16,7 @@ pub struct Metadata {
     pub source: Option<String>,
     pub position: Option<u32>,
     pub category: Option<String>,
-    pub amount: Option<u64>,
+    pub amount: Option<u32>,
 }
 
 pub enum EventType {
