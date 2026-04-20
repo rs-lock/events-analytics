@@ -22,6 +22,9 @@ const TOPICS: &[&str] = &["events.clicks", "events.views", "events.purchases"];
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
 
     let batch_size: usize = env("BATCH_SIZE")
         .parse()
@@ -60,18 +63,19 @@ async fn main() {
         .with_password(ch_psw)
         .with_database(ch_db);
 
+    tracing::info!(batch_size, flush_secs, "workers started");
     loop {
         tokio::select! {
                 msg = consumer.recv() => {
                     if let Err(e) = handle_msg(msg, &mut batch_map, &client, batch_size).await {
-                        eprintln!("handle error: {:?}", e);
+                        tracing::error!("handle error: {:?}", e);
                     }
                     }
 
             _ = interval.tick() => {
-                eprintln!("interval tick - flushing");
+                tracing::debug!("interval tick - flushing");
                 if let Err(e) = flush_all(&mut batch_map, &client).await {
-                    eprintln!("flush error: {:?}", e);
+                    tracing::error!("flush error: {:?}", e);
                 }
             }
         }
@@ -92,23 +96,23 @@ async fn handle_msg(
     let v = match msg {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("kafka recv error: {:?}", e);
+            tracing::error!("kafka recv error: {:?}", e);
             return Ok(());
         }
     };
 
     let Some(event) = extract_payload(&v) else {
-        eprintln!("failed to extract payload from topic {}", v.topic());
+        tracing::warn!("failed to extract payload from topic {}", v.topic());
         return Ok(());
     };
 
     let topic = v.topic();
     let Some(vec) = batch_map.get_mut(topic) else {
-        eprintln!("unknown topic: {}", topic);
+        tracing::warn!("unknown topic: {}", topic);
         return Ok(());
     };
 
-    eprintln!("queued event in {}, batch size: {}", topic, vec.len() + 1);
+    tracing::debug!("queued event in {}, batch size: {}", topic, vec.len() + 1);
     vec.push(event);
 
     if vec.len() >= batch_size {
@@ -161,7 +165,7 @@ async fn flush_all(
             "events.views" => flush_views_batch(batch, client).await?,
             "events.purchases" => flush_purchases_batch(batch, client).await?,
             _ => {
-                eprintln!("handle error: topic");
+                unreachable!()
             }
         }
     }

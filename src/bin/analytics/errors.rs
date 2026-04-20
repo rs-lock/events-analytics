@@ -35,6 +35,9 @@ impl ResponseError for AnalyticsError {
     }
 
     fn error_response(&self) -> HttpResponse<BoxBody> {
+        if let Self::ClickHouse(e) = self {
+            tracing::error!(error = ?e, "clickhouse query failed");
+        }
         HttpResponse::build(self.status_code()).json(serde_json::json!({"error": self.to_string()}))
     }
 }

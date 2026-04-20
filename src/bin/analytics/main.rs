@@ -2,6 +2,7 @@ use std::io::Result;
 
 use actix_web::{
     App, HttpServer,
+    middleware::Logger,
     web::{self},
 };
 
@@ -19,6 +20,9 @@ mod validation;
 #[actix_web::main]
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
 
     let ch_url = env("CLICKHOUSE_URL");
     let ch_user = env("CLICKHOUSE_USER");
@@ -33,8 +37,9 @@ async fn main() -> Result<()> {
         .with_password(ch_psw)
         .with_database(ch_db);
 
-    HttpServer::new(move || {
+    let server = HttpServer::new(move || {
         App::new()
+            .wrap(Logger::default())
             .service(
                 web::scope("/api/v1")
                     .route(
@@ -56,7 +61,8 @@ async fn main() -> Result<()> {
             )
             .app_data(web::Data::new(client.clone()))
     })
-    .bind(api_bind)?
-    .run()
-    .await
+    .bind(&api_bind)?;
+
+    tracing::info!(bind = %api_bind, "analytics API started");
+    server.run().await
 }
