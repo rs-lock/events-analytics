@@ -61,7 +61,8 @@ async fn main() -> Result<()> {
             )
             .app_data(web::Data::new(client.clone()))
     })
-    .bind(&api_bind)?;
+    .bind(&api_bind)?
+    .shutdown_timeout(30);
 
     tracing::info!(bind = %api_bind, "analytics API started");
     server.run().await

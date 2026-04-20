@@ -16,6 +16,7 @@ use event_analytics::{
     errors::WorkerError,
     models::Event,
 };
+use tokio::signal::unix::{SignalKind, signal};
 
 const TOPICS: &[&str] = &["events.clicks", "events.views", "events.purchases"];
 
@@ -64,13 +65,30 @@ async fn main() {
         .with_database(ch_db);
 
     tracing::info!(batch_size, flush_secs, "workers started");
+
+    let mut sigterm = signal(SignalKind::terminate()).expect("failed to install SIGTERM handler");
+    let ctrl_c = tokio::signal::ctrl_c();
+    tokio::pin!(ctrl_c);
     loop {
         tokio::select! {
-                msg = consumer.recv() => {
-                    if let Err(e) = handle_msg(msg, &mut batch_map, &client, batch_size).await {
+            biased;
+            _ = &mut ctrl_c => {
+                tracing::info!("shutdown signal, flushing final batch");
+                if let Err(e) = flush_all(&mut batch_map, &client).await {
+                    tracing::error!(error = ?e, "final flush failed");
+                }
+                break;
+            }
+            _ = sigterm.recv() => {
+                tracing::info!("SIGTERM received, flushing");
+                let _ = flush_all(&mut batch_map, &client).await;
+                break;
+            }
+            msg = consumer.recv() => {
+                if let Err(e) = handle_msg(msg, &mut batch_map, &client, batch_size).await {
                         tracing::error!("handle error: {:?}", e);
                     }
-                    }
+                }
 
             _ = interval.tick() => {
                 tracing::debug!("interval tick - flushing");

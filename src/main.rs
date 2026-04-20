@@ -38,7 +38,8 @@ async fn main() -> std::io::Result<()> {
             .route("/health", web::get().to(health))
             .app_data(data)
     })
-    .bind(&api_bind)?;
+    .bind(&api_bind)?
+    .shutdown_timeout(30);
 
     tracing::info!(bind = %api_bind, "Ingestion API started");
     server.run().await
