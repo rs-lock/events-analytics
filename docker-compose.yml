@@ -51,6 +51,44 @@ services:
     depends_on:
       - kafka
 
+  ingestion:
+    build: .
+    container_name: ingestion
+    command: ["event-analytics"]
+    env_file: .env
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      INGESTION_BIND: 0.0.0.0:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+
+  workers:
+    build: .
+    container_name: workers
+    command: ["workers"]
+    env_file: .env
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      CLICKHOUSE_URL: http://clickhouse:8123
+    depends_on:
+      - kafka
+      - clickhouse
+
+  analytics:
+    build: .
+    container_name: analytics
+    command: ["analytics"]
+    env_file: .env
+    environment:
+      CLICKHOUSE_URL: http://clickhouse:8123
+      ANALYTICS_BIND: 0.0.0.0:8081
+    ports:
+      - "8081:8081"
+    depends_on:
+      - clickhouse
+
 volumes:
   clickhouse_data:
   kafka_data:
