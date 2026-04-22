@@ -62,7 +62,7 @@ pub async fn select_user_event_count(
     Ok(row.count)
 }
 
-pub async fn select_top_products_by_period(
+pub async fn select_products_by_period(
     client: &Client,
     table: &str,
     user_id: Uuid,

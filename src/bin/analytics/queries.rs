@@ -11,6 +11,8 @@ pub struct TopProductsQuery {
 pub struct UserActivityQuery {
     pub from: Option<String>,
     pub to: Option<String>,
+    pub limit: Option<u32>,
+    pub offset: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]

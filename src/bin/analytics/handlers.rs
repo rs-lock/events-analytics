@@ -16,7 +16,7 @@ use crate::{
         RealtimeStatsResponse, UserActivityResponse,
     },
     sql::{
-        select_global_event_count, select_top_products, select_top_products_by_period,
+        select_global_event_count, select_products_by_period, select_top_products,
         select_user_event_count,
     },
     validation::{validate_metric, validate_period},
@@ -71,13 +71,16 @@ pub async fn handle_user_activity(
         return Err(AnalyticsError::InvalidTo);
     };
 
+    let limit = q.limit.unwrap_or(50).min(500);
+    let offset = q.offset.unwrap_or_default();
+
     let (all_clicks, all_views, all_purchases, product_clicks, product_views, product_purchases) = tokio::join!(
         select_user_event_count(client.get_ref(), "clicks", user_id, from, to),
         select_user_event_count(client.get_ref(), "views", user_id, from, to),
         select_user_event_count(client.get_ref(), "purchases", user_id, from, to),
-        select_top_products_by_period(client.get_ref(), "clicks", user_id, from, to),
-        select_top_products_by_period(client.get_ref(), "views", user_id, from, to),
-        select_top_products_by_period(client.get_ref(), "purchases", user_id, from, to),
+        select_products_by_period(client.get_ref(), "clicks", user_id, from, to),
+        select_products_by_period(client.get_ref(), "views", user_id, from, to),
+        select_products_by_period(client.get_ref(), "purchases", user_id, from, to),
     );
 
     let event_clicks = all_clicks?;
@@ -115,6 +118,8 @@ pub async fn handle_user_activity(
                 product_id,
                 event_counts,
             })
+            .skip(offset as usize)
+            .take(limit as usize)
             .collect(),
     };
     Ok(HttpResponse::Ok().json(resp))
