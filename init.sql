@@ -42,3 +42,24 @@ ORDER BY (user_id, timestamp);
 ) ENGINE = MergeTree()
 PARTITION BY toYYYYMM(date)
 ORDER BY (user_id, timestamp);
+
+CREATE MATERIALIZED VIEW events.mv_revenue_hourly
+ENGINE = SummingMergeTree()
+ORDER BY (product_id, hour)
+AS SELECT
+    product_id,
+    toStartOfHour(timestamp) AS hour,
+    sum(amount) AS revenue,
+    count() AS purchase_count
+FROM events.purchases
+GROUP BY product_id, hour;
+
+CREATE MATERIALIZED VIEW events.mv_views_hourly
+ENGINE = SummingMergeTree()
+ORDER BY (product_id, hour)
+AS SELECT
+    product_id,
+    toStartOfHour(timestamp) AS hour,
+    count() AS count
+FROM events.views
+GROUP BY product_id, hour;

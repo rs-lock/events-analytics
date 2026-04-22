@@ -10,16 +10,27 @@ pub async fn select_top_products(
     metric: &Metric,
     interval: Interval,
 ) -> std::result::Result<Vec<TopProductRow>, clickhouse::error::Error> {
-    let sql = format!(
-        "SELECT product_id, count() AS count
-         FROM {}
-         WHERE timestamp >= now() - INTERVAL {}
-         GROUP BY product_id
-         ORDER BY count DESC
-         LIMIT ?",
-        metric.table(),
-        interval
-    );
+    let sql = match metric {
+        Metric::Views => format!(
+            "SELECT product_id, sum(count) AS count
+            FROM mv_views_hourly
+            WHERE hour >= now() - INTERVAL {}
+            GROUP BY product_id
+            ORDER BY count DESC
+            LIMIT ?",
+            interval
+        ),
+        Metric::Clicks | Metric::Purchases => format!(
+            "SELECT product_id, count() AS count
+             FROM {}
+             WHERE timestamp >= now() - INTERVAL {}
+             GROUP BY product_id
+             ORDER BY count DESC
+             LIMIT ?",
+            metric.table(),
+            interval
+        ),
+    };
 
     let rows: Vec<TopProductRow> = client.query(&sql).bind(lim).fetch_all().await?;
 
