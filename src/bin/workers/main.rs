@@ -1,5 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
+use actix_web::Result;
 use rdkafka::{
     ClientConfig, Message,
     consumer::{Consumer, StreamConsumer},
@@ -56,7 +57,6 @@ async fn main() {
         .with_password(ch_psw)
         .with_database(ch_db);
 
-    tracing::info!(batch_size, flush_secs, "workers started");
 
     let num_cpus = num_cpus::get();
 
@@ -107,17 +107,22 @@ async fn run_worker(
         .map(|v| (*v, Vec::<Event>::with_capacity(batch_size)))
         .collect();
 
-    let consumer = config.create::<StreamConsumer>().unwrap();
-    consumer
-        .subscribe(TOPICS)
-        .expect("Can't subscribe to specified topics");
+    let Ok(consumer) = config.create::<StreamConsumer>() else {
+        tracing::error!(worker_id, "failed to create consumer");
+        return;
+    };
 
-    tracing::info!("worker started");
+    let Ok(_) = consumer.subscribe(TOPICS) else {
+        tracing::error!(worker_id, "failed to subscribe topics");
+        return;
+    };
 
     let mut interval = tokio::time::interval(Duration::from_secs(flush_secs));
 
     let cancel_fut = cancel_token.cancelled();
     tokio::pin!(cancel_fut);
+
+    tracing::info!("worker started");
 
     loop {
         tokio::select! {
