@@ -16,7 +16,11 @@ use event_analytics::{
     errors::WorkerError,
     models::Event,
 };
-use tokio::signal::unix::{SignalKind, signal};
+use tokio::{
+    signal::unix::{SignalKind, signal},
+    task::JoinSet,
+};
+use tokio_util::sync::CancellationToken;
 
 const TOPICS: &[&str] = &["events.clicks", "events.views", "events.purchases"];
 
@@ -46,18 +50,6 @@ async fn main() {
     config.set("group.id", "workers");
     config.set("auto.offset.reset", "earliest");
 
-    let consumer = config.create::<StreamConsumer>().unwrap();
-    consumer
-        .subscribe(TOPICS)
-        .expect("Can't subscribe to specified topics");
-
-    let mut interval = tokio::time::interval(Duration::from_secs(flush_secs));
-
-    let mut batch_map: HashMap<&str, Vec<Event>> = TOPICS
-        .iter()
-        .map(|v| (*v, Vec::<Event>::with_capacity(batch_size)))
-        .collect();
-
     let client = Client::default()
         .with_url(ch_url)
         .with_user(ch_user)
@@ -66,22 +58,75 @@ async fn main() {
 
     tracing::info!(batch_size, flush_secs, "workers started");
 
-    let mut sigterm = signal(SignalKind::terminate()).expect("failed to install SIGTERM handler");
-    let ctrl_c = tokio::signal::ctrl_c();
-    tokio::pin!(ctrl_c);
+    let num_cpus = num_cpus::get();
+
+    let cancellation_token = CancellationToken::new();
+    let signal_token = cancellation_token.clone();
+
+    tokio::spawn(async move {
+        let mut sigterm =
+            signal(SignalKind::terminate()).expect("failed to install SIGTERM handler");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => tracing::info!("ctrl-c received"),
+            _ = sigterm.recv() => tracing::info!("sigterm received"),
+        }
+        signal_token.cancel();
+    });
+
+    let mut set = JoinSet::new();
+    for id in 0..num_cpus {
+        let token_clone = cancellation_token.clone();
+        set.spawn(run_worker(
+            id,
+            config.clone(),
+            client.clone(),
+            token_clone,
+            batch_size,
+            flush_secs,
+        ));
+    }
+
+    while let Some(res) = set.join_next().await {
+        if let Err(e) = res {
+            tracing::error!(error = ?e, "worker task panicked");
+        }
+    }
+}
+
+#[tracing::instrument(skip_all, fields(id = worker_id))]
+async fn run_worker(
+    worker_id: usize,
+    config: ClientConfig,
+    client: Client,
+    cancel_token: CancellationToken,
+    batch_size: usize,
+    flush_secs: u64,
+) {
+    let mut batch_map: HashMap<&str, Vec<Event>> = TOPICS
+        .iter()
+        .map(|v| (*v, Vec::<Event>::with_capacity(batch_size)))
+        .collect();
+
+    let consumer = config.create::<StreamConsumer>().unwrap();
+    consumer
+        .subscribe(TOPICS)
+        .expect("Can't subscribe to specified topics");
+
+    tracing::info!("worker started");
+
+    let mut interval = tokio::time::interval(Duration::from_secs(flush_secs));
+
+    let cancel_fut = cancel_token.cancelled();
+    tokio::pin!(cancel_fut);
+
     loop {
         tokio::select! {
             biased;
-            _ = &mut ctrl_c => {
-                tracing::info!("shutdown signal, flushing final batch");
+            _ = &mut cancel_fut => {
+                tracing::info!("shutdown signal, flushing final batch by worker");
                 if let Err(e) = flush_all(&mut batch_map, &client).await {
                     tracing::error!(error = ?e, "final flush failed");
                 }
-                break;
-            }
-            _ = sigterm.recv() => {
-                tracing::info!("SIGTERM received, flushing");
-                let _ = flush_all(&mut batch_map, &client).await;
                 break;
             }
             msg = consumer.recv() => {
