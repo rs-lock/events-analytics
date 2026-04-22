@@ -13,7 +13,6 @@ pub async fn handle_event(
     event: Json<Event>,
     producer: Data<FutureProducer>,
 ) -> Result<HttpResponse, EventError> {
-    println!("Получено событие: {:?}", event);
     let path = path.into_inner();
     let event_type = validate_event_type(&path)?;
 

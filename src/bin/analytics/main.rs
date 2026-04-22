@@ -35,7 +35,8 @@ async fn main() -> Result<()> {
         .with_url(ch_url)
         .with_user(ch_user)
         .with_password(ch_psw)
-        .with_database(ch_db);
+        .with_database(ch_db)
+        .with_setting("max_execution_time", "30");
 
     let server = HttpServer::new(move || {
         App::new()
