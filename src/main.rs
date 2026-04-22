@@ -26,6 +26,10 @@ async fn main() -> std::io::Result<()> {
         let producer: FutureProducer = ClientConfig::new()
             .set("bootstrap.servers", &kafka_bind)
             .set("message.timeout.ms", "1000")
+            .set("compression.type", "lz4")
+            .set("linger.ms", "10")
+            .set("batch.num.messages", "10000")
+            .set("acks", "1")
             .create()
             .expect("Producer creation error");
 

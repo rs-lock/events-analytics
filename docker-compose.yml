@@ -34,9 +34,32 @@ services:
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_RETENTION_HOURS: 24
 
     volumes:
       - kafka_data:/var/lib/kafka/data
+
+  kafka-init:
+    image: apache/kafka:3.7.0
+    depends_on:
+      - kafka
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        echo "Waiting for Kafka..."
+        until /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --list >/dev/null 2>&1; do
+          sleep 2
+        done
+        for t in events.clicks events.views events.purchases; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 \
+            --create --if-not-exists --topic "$$t" \
+            --partitions 3 --replication-factor 1 \
+            --config retention.ms=86400000 \
+            --config compression.type=lz4
+        done
+        echo "Topics ready."
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -63,6 +86,7 @@ services:
       - "8080:8080"
     depends_on:
       - kafka
+      - kafka-init
 
   workers:
     build: .
@@ -73,8 +97,12 @@ services:
       KAFKA_BROKERS: kafka:29092
       CLICKHOUSE_URL: http://clickhouse:8123
     depends_on:
-      - kafka
-      - clickhouse
+      kafka:
+        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
+      clickhouse:
+        condition: service_started
 
   analytics:
     build: .
