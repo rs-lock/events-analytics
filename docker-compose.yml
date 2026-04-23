@@ -40,6 +40,12 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
 
+  tabix:
+    image: spoonest/clickhouse-tabix-web-client
+    ports:
+      - "8088:80"
+    depends_on:
+      - clickhouse
   kafka-init:
     image: apache/kafka:3.7.0
     depends_on:
