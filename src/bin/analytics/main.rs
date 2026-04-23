@@ -44,22 +44,10 @@ async fn main() -> Result<()> {
             .wrap(Logger::default())
             .service(
                 web::scope("/api/v1")
-                    .route(
-                        "/analytics/top-products",
-                        web::get().to(handlers::handle_top_products),
-                    )
-                    .route(
-                        "/analytics/user-activity/{user_id}",
-                        web::get().to(handlers::handle_user_activity),
-                    )
-                    .route(
-                        "/analytics/conversion-rate",
-                        web::get().to(handlers::handle_conversion_rate),
-                    )
-                    .route(
-                        "/analytics/realtime-stats",
-                        web::get().to(handlers::handle_realtime_stats),
-                    ),
+                    .service(handlers::handle_top_products)
+                    .service(handlers::handle_user_activity)
+                    .service(handlers::handle_conversion_rate)
+                    .service(handlers::handle_realtime_stats),
             )
             .app_data(web::Data::new(client.clone()))
     })

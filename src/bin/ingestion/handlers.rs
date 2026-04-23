@@ -2,12 +2,13 @@ use std::time::Duration;
 
 use crate::validator::validate_event_type;
 use actix_web::{
-    HttpResponse,
+    HttpResponse, get, post,
     web::{Data, Json, Path},
 };
 use event_analytics::{errors::EventError, models::Event};
 use rdkafka::producer::{FutureProducer, FutureRecord};
 
+#[post("/events/{event_type}")]
 pub async fn handle_event(
     path: Path<String>,
     event: Json<Event>,
@@ -33,6 +34,7 @@ pub async fn handle_event(
     Result::Ok(ok)
 }
 
+#[get("/health")]
 pub async fn health() -> HttpResponse {
     HttpResponse::Ok().json(serde_json::json!({ "status": "healthy" }))
 }

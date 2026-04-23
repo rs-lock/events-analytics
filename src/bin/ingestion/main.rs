@@ -35,10 +35,7 @@ async fn main() -> std::io::Result<()> {
         let data = web::Data::new(producer);
         App::new()
             .wrap(Logger::default())
-            .service(
-                web::scope("/api/v1").route("/events/{event_type}", web::post().to(handle_event)),
-            )
-            .route("/health", web::get().to(health))
+            .service(web::scope("/api/v1").service(handle_event).service(health))
             .app_data(data)
     })
     .bind(&api_bind)?

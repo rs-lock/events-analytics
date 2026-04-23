@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use actix_web::{
-    HttpResponse,
+    HttpResponse, get,
     web::{self, Data, Path},
 };
 use chrono::DateTime;
@@ -23,6 +23,7 @@ use crate::{
     validation::{validate_metric, validate_period},
 };
 
+#[get("/analytics/top-products")]
 pub async fn handle_top_products(
     query: web::Query<TopProductsQuery>,
     client: Data<Client>,
@@ -45,6 +46,7 @@ pub async fn handle_top_products(
     }))
 }
 
+#[get("/analytics/user-activity/{user_id}")]
 pub async fn handle_user_activity(
     path: Path<String>,
     query: web::Query<UserActivityQuery>,
@@ -126,6 +128,7 @@ pub async fn handle_user_activity(
     Ok(HttpResponse::Ok().json(resp))
 }
 
+#[get("/analytics/conversion-rate")]
 pub async fn handle_conversion_rate(
     query: web::Query<ConversionRateQuery>,
     client: Data<Client>,
@@ -174,6 +177,7 @@ pub async fn handle_conversion_rate(
     Ok(HttpResponse::Ok().json(r))
 }
 
+#[get("/analytics/realtime-stats")]
 pub async fn handle_realtime_stats(client: Data<Client>) -> Result<HttpResponse, AnalyticsError> {
     let now = chrono::Utc::now();
     let last_15m = now - chrono::Duration::minutes(15);
