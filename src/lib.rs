@@ -1,6 +1,7 @@
 pub mod clickhouse_rows;
 pub mod errors;
 pub mod models;
+pub mod response;
 
 pub const TOPICS: &[&str] = &["events.clicks", "events.views", "events.purchases"];
 

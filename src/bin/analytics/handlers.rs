@@ -11,16 +11,17 @@ use uuid::Uuid;
 use crate::{
     errors::AnalyticsError,
     queries::{ConversionRateQuery, TopProductsQuery, UserActivityQuery},
-    response::{
-        ConversionRateResponse, EventCounts, ProductActivity, ProductsResponse,
-        RealtimeStatsResponse, UserActivityResponse,
-    },
     sql::{
         select_global_event_count, select_products_by_period, select_top_products,
         select_user_event_count,
     },
     utils::conversion_rate,
     validation::{validate_metric, validate_period},
+};
+
+use event_analytics::response::{
+    ConversionRateResponse, EventCounts, ProductActivity, ProductsResponse, RealtimeStatsResponse,
+    UserActivityResponse,
 };
 
 #[get("/analytics/top-products")]

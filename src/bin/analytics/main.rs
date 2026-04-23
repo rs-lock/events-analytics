@@ -13,7 +13,6 @@ mod errors;
 mod handlers;
 mod models;
 mod queries;
-mod response;
 mod sql;
 mod utils;
 mod validation;

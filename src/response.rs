@@ -1,8 +1,8 @@
-use event_analytics::clickhouse_rows::TopProductRow;
-use serde::Serialize;
+use crate::clickhouse_rows::TopProductRow;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UserActivityResponse {
     pub user_id: Uuid,
     pub from: String,
@@ -11,14 +11,14 @@ pub struct UserActivityResponse {
     pub top_products: Vec<ProductActivity>,
 }
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct EventCounts {
     pub clicks: u64,
     pub views: u64,
     pub purchases: u64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProductActivity {
     pub product_id: Uuid,
     pub event_counts: EventCounts,
@@ -28,7 +28,7 @@ pub struct ProductActivity {
 pub struct ProductsResponse {
     pub period: String,
     pub metric: String,
-    pub(crate) items: Vec<ProductItemResponse>,
+    pub items: Vec<ProductItemResponse>,
 }
 
 #[derive(Debug, Serialize)]
