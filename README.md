@@ -8,7 +8,7 @@ Event-analytics is an event-driven project inspired by real problems of high-loa
 
 The application design is based on Event-Driven Architecture which allows us to distribute all load between separated web applications.
 At a high level the system could be described in several components that are shown in the diagram below. 
-
+```
 ⏺ ┌─────────┐       ┌─────────────┐       ┌───────────┐       ┌─────────┐
   │ Clients │──────▶│ Ingestion   │──────▶│   Kafka   │──────▶│ Workers │
   │         │ HTTP  │ API         │ async │           │consume│ (pool)  │
@@ -26,7 +26,7 @@ At a high level the system could be described in several components that are sho
   ┌─────────┐
   │ Clients │
   └─────────┘
-
+```
 1) Ingestion API
 2) Kafka broker
 3) Workers binary
