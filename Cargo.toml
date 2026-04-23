@@ -17,3 +17,4 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 num_cpus = "1.17.0"
 tokio-util = "0.7.18"
+thiserror = "2.0.18"
