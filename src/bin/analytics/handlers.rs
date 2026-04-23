@@ -19,6 +19,7 @@ use crate::{
         select_global_event_count, select_products_by_period, select_top_products,
         select_user_event_count,
     },
+    utils::conversion_rate,
     validation::{validate_metric, validate_period},
 };
 
@@ -157,16 +158,8 @@ pub async fn handle_conversion_rate(
     let views = v?;
     let purchases = p?;
 
-    let click_to_purchase = if clicks == 0 {
-        0.0
-    } else {
-        purchases as f64 / clicks as f64
-    };
-    let view_to_purchase = if views == 0 {
-        0.0
-    } else {
-        purchases as f64 / views as f64
-    };
+    let click_to_purchase = conversion_rate(purchases, clicks);
+    let view_to_purchase = conversion_rate(purchases, views);
 
     let r = ConversionRateResponse {
         from: from.to_rfc3339(),
