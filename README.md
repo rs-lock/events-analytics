@@ -6,7 +6,7 @@ Event-analytics is an event-driven project inspired by real problems of high-loa
 ---
 #  Architecture 
 
-The application design is based on Event-Driven Architecture which allows us to distribute all load between separated web applications.
+The application design is based on Event-Driven Architecture, which distributes load across separate services.
 At a high level the system could be described in several components that are shown in the diagram below. 
 ```
 ⏺ ┌─────────┐       ┌─────────────┐       ┌───────────┐       ┌─────────┐
@@ -33,7 +33,10 @@ At a high level the system could be described in several components that are sho
 4) Clickhouse
 5) Analytics API
 
-As we can see, clients are sending requests with some payload to the Ingestion API and this API transmits this data through async message broker - kafka, then these messages are listened to and consumed by a workers application. The workers app includes a worker pool, so all messages will be distributed between workers, and then all the data is inserted in SQL table. As a database we chose Clickhouse, because we have to face many events at a time, and rate of inserting in the table is very high. The last instance of event analytics is Analytics API. This API allows clients to get all the data, such as realtime data, historical data of needed events and more.
+Clients send requests with payload to the Ingestion API, which transmits data to Kafka asynchronously.
+The worker pool distributes messages across workers and then all the data is inserted into SQL table. 
+Clickhouse chosen for its high insert throughput and analytics performance. Finally, the Analytics API
+provides access to realtime stats, historical data, and aggregated metrics.
 
 ---
 # Quickstart
