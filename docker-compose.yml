@@ -77,7 +77,7 @@ services:
   ingestion:
     build: .
     container_name: ingestion
-    command: ["event-analytics"]
+    command: ["ingestion"]
     env_file: .env
     environment:
       KAFKA_BROKERS: kafka:29092

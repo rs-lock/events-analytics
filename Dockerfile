@@ -16,6 +16,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=builder /app/target/release/event-analytics /usr/local/bin/
+COPY --from=builder /app/target/release/ingestion /usr/local/bin/
 COPY --from=builder /app/target/release/workers /usr/local/bin/
 COPY --from=builder /app/target/release/analytics /usr/local/bin/
