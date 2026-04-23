@@ -14,10 +14,6 @@ impl ResponseError for EventError {
         StatusCode::BAD_REQUEST
     }
 
-    /// Creates full response for error.
-    ///
-    /// By default, the generated response uses a 500 Internal Server Error status code, a
-    /// `Content-Type` of `text/plain`, and the body is set to `Self`'s `Display` impl.
     fn error_response(&self) -> HttpResponse<BoxBody> {
         match self {
             EventError::Timestamp => HttpResponse::new(StatusCode::BAD_REQUEST),

@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use crate::{errors::EventError, validator::validate_event_type};
+use crate::validator::validate_event_type;
 use actix_web::{
     HttpResponse,
     web::{Data, Json, Path},
 };
-use event_analytics::models::Event;
+use event_analytics::{errors::EventError, models::Event};
 use rdkafka::producer::{FutureProducer, FutureRecord};
 
 pub async fn handle_event(

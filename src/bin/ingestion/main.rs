@@ -8,7 +8,6 @@ use rdkafka::{ClientConfig, producer::FutureProducer};
 
 use crate::handlers::{handle_event, health};
 
-mod errors;
 mod handlers;
 mod validator;
 

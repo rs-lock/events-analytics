@@ -15,6 +15,7 @@ mod models;
 mod queries;
 mod response;
 mod sql;
+mod utils;
 mod validation;
 
 #[actix_web::main]
